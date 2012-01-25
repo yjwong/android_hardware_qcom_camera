@@ -146,6 +146,28 @@ typedef struct {
      struct ion_fd_data ion_info_fd[MM_CAMERA_MAX_NUM_FRAMES];
 } QCameraHalHeap_t;
 
+typedef struct {
+  int32_t msg_type;
+  int32_t ext1;
+  int32_t ext2;
+  void    *cookie;
+} argm_notify_t;
+
+typedef struct {
+  int32_t                  msg_type;
+  camera_memory_t         *data;
+  unsigned int             index;
+  camera_frame_metadata_t *metadata;
+  void                    *cookie;
+} argm_data_cb_t;
+
+typedef struct {
+  camera_notify_callback notifyCb;
+  camera_data_callback   dataCb;
+  argm_notify_t argm_notify;
+  argm_data_cb_t        argm_data_cb;
+} app_notify_cb_t;
+
 namespace android {
 
 class QCameraStream;
@@ -344,8 +366,6 @@ public:
 
     status_t    takeLiveSnapshot();
 
-    status_t          setParameters(const CameraParameters& params);
-    CameraParameters  getParameters() const;
     //virtual status_t          getBufferInfo( sp<IMemory>& Frame,
     //size_t *alignedSize);
     void         getPictureSize(int *picture_width, int *picture_height) const;
@@ -416,20 +436,20 @@ private:
     bool isSnapshotRunning();
     status_t storePreviewFrameForPostview(void);
 
-    void processChannelEvent(mm_camera_ch_event_t *);
-    void processPreviewChannelEvent(mm_camera_ch_event_type_t channelEvent);
-    void processRecordChannelEvent(mm_camera_ch_event_type_t channelEvent);
-    void processSnapshotChannelEvent(mm_camera_ch_event_type_t channelEvent);
-    void processCtrlEvent(mm_camera_ctrl_event_t *);
-    void processStatsEvent(mm_camera_stats_event_t *);
-    void processInfoEvent(mm_camera_info_event_t *event);
+    void processChannelEvent(mm_camera_ch_event_t *, app_notify_cb_t *);
+    void processPreviewChannelEvent(mm_camera_ch_event_type_t channelEvent, app_notify_cb_t *);
+    void processRecordChannelEvent(mm_camera_ch_event_type_t channelEvent, app_notify_cb_t *);
+    void processSnapshotChannelEvent(mm_camera_ch_event_type_t channelEvent, app_notify_cb_t *);
+    void processCtrlEvent(mm_camera_ctrl_event_t *, app_notify_cb_t *);
+    void processStatsEvent(mm_camera_stats_event_t *, app_notify_cb_t *);
+    void processInfoEvent(mm_camera_info_event_t *event, app_notify_cb_t *);
     void processprepareSnapshotEvent(cam_ctrl_status_t *);
-    void roiEvent(fd_roi_t roi);
-    void zoomEvent(cam_ctrl_status_t *status);
-    void autofocusevent(cam_ctrl_status_t *status);
-    void handleZoomEventForPreview(void);
+    void roiEvent(fd_roi_t roi, app_notify_cb_t *);
+    void zoomEvent(cam_ctrl_status_t *status, app_notify_cb_t *);
+    void autofocusevent(cam_ctrl_status_t *status, app_notify_cb_t *);
+    void handleZoomEventForPreview(app_notify_cb_t *);
     void handleZoomEventForSnapshot(void);
-    status_t autoFocusEvent(cam_ctrl_status_t *);
+    status_t autoFocusEvent(cam_ctrl_status_t *, app_notify_cb_t *);
 
     void filterPictureSizes();
     bool supportsSceneDetection();
@@ -447,7 +467,11 @@ private:
 	status_t resumePreviewAfterSnapshot();
 
     status_t runFaceDetection();
-    status_t setCameraMode(const CameraParameters& params);
+
+	status_t          setParameters(const CameraParameters& params);
+	CameraParameters&  getParameters() ;
+
+	status_t setCameraMode(const CameraParameters& params);
     status_t setPictureSizeTable(void);
     status_t setPreviewSizeTable(void);
     status_t setPreviewSize(const CameraParameters& params);
@@ -459,7 +483,7 @@ private:
     status_t setPictureSize(const CameraParameters& params);
     status_t setJpegQuality(const CameraParameters& params);
     status_t setNumOfSnapshot(const CameraParameters& params);
-    status_t setJpegRotation(void);
+    status_t setJpegRotation(int isZSL);
 	int getJpegRotation(void);
     status_t setAntibanding(const CameraParameters& params);
     status_t setEffect(const CameraParameters& params);
